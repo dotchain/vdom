@@ -1,0 +1,25 @@
+{
+  "name": "vdom",
+  "version": "1.0.0",
+  "main": "index.js",
+  "module": "index.es6.js",
+  "author": "VK",
+  "license": "MIT",
+  "dependencies": {},
+  "scripts": {
+    "test": "yarn mocha *_test.js",
+    "pretty": "find . -name '*.js' | grep -v node_modules | xargs yarn prettier --write",
+    "stream_server": "cd example/stream; python -m SimpleHTTPServer 8081",
+    "stream": "yarn webpack -o example/stream/app.dist.js --mode development example/stream/app.js"
+  },
+  "devDependencies": {
+    "git": "^0.1.5",
+    "jsdom": "^15.2.1",
+    "mocha": "^6.2.2",
+    "prettier": "^1.19.1",
+    "streams": "https://github.com/dotchain/streams.git",
+    "uuid": "^3.3.3",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
+  }
+}
