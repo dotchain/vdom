@@ -1,13 +1,12 @@
 language: node_js
 node_js:
-   - "node"
+  - "node"
 addons:
-   chrome: stable
+  chrome: stable
 before_install:
-   - cd es6;
-   - yarn install;
+  - yarn install;
 script:
-   - yarn test;
+  - yarn test;
 after_success:
   - yarn coverage;
 

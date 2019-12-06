@@ -5,7 +5,10 @@
   "module": "index.es6.js",
   "author": "VK",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "mime": "^1.4.1",
+    "serialize-javascript": "^2.1.1"
+  },
   "scripts": {
     "test": "yarn mocha *_test.js",
     "pretty": "find . -name '*.js' | grep -v node_modules | xargs yarn prettier --write",
