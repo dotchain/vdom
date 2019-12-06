@@ -59,3 +59,7 @@ typings/
 
 # next.js build output
 .next
+
+# no dist.js or min.js
+*.dist.js
+*.min.js
