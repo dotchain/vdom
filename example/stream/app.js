@@ -69,7 +69,7 @@ class App {
 
   clearCompleted() {
     this.data.todos.forEachKey(key => {
-      const todo = this.data.latest().todos[key];
+      const todo = this.data.todos[key];
       if (!todo.deleted.valueOf() && todo.completed.valueOf()) {
         todo.deleted.replace(true);
       }
@@ -78,7 +78,7 @@ class App {
 
   setAll(completed) {
     this.data.todos.forEachKey(key => {
-      const todo = this.data.latest().todos[key];
+      const todo = this.data.todos[key];
       if (!todo.deleted.valueOf()) {
         todo.completed.replace(completed);
       }

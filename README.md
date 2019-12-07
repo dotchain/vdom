@@ -6,19 +6,37 @@
 This package implements a zero-dependency simple virtual DOM manager.
 
 ## Contents
+1. [Installing](#installing)
+2. [Principles](#principles)
+3. [Implementation](#implementation)
+    1. [Empty node](#empty-node)
+    2. [Text node](#text-node)
+    3. [Element](#element)
+    4. [Fragment](#fragment)
+        1. [Fragments are first-class](#fragments-are-first-class)
+4. [API](#api)
+    1. [Pure immutable renderers](#pure-immutable-renderers)
+    2. [Almost immutable rerenderers](#almost-immutable-rerenderers)
+5. [Events](#events)
+6. [Testing](#testing)
+7. [Demos](#demos)
+
+## Installing
+
+The vdom package is not avaiable in npm. Install this direclty from
+github via `npm add https://github.com/dotchain/vdom` or
+`yarn add https://github.com/dotchain/vdom`.
 
 ## Principles
 
 1. **Be declarative.** No specific methods to mutate the DOM. 
 2. **Compose well.** The full app can be rendered in parts and
 composed together.
-3. **Be agnostic of frameworks.** That is, there are very few
-assumptions about how data/model changes are manages/propagated or how
-event/state managemen works.  Virtual DOM deals only with rendering
-and re-rendering. 
+3. **Be agnostic of frameworks.** Allow immutable/mutable data models
+and custom event management setups.  Virtual DOM deals only with
+rendering and reconciling (i.e applying differences ot real DOM).
 4. **Performant** Support moderately large DOMs with little to no
-performance penalty.  Extremely large DOMs may not necessarily be as
-performant. 
+performance penalty.  Extremely large DOMs are not a direct target.
 
 ## Implementation
 
@@ -82,12 +100,15 @@ Text nodes are represented via an object `{text: string}`.
 ### Element
 
 Elements are represented via an object `{tag, props, key, events,
-contents}` where contents is itself an empty node or text node or
-element or a fragment. The optional `key` property tracks the `key`
-(so reordering of nodes can be done efficiently).  The optional
-`events` property is a map of DOM-events to an opaque event data. This
-hash is expected to be managed by the events manager (see
-[Events](#events)).
+contents}`.
+
+* `tag` is the tag name.
+* `props` are DOM properties or attributes.
+* `key` is an locally unique id to help with perf of re-ordered nodes
+* `contents` can be an empty node, a text node or another element or a
+fragment.
+* `events` is a hash of DOM event-name to opaque event data. See
+[events](#events).
 
 ### Fragment
 
@@ -97,7 +118,7 @@ can be an empty node, text node, an element or another fragment.
 Fragments can be represented in two different ways: as a simple array
 or as an object of the form `{nodes: [ ]}`.  The simpler form is
 useful for the `contents` field of an Element while the later form is
-useful when a frament is meant to be rerendered on its own.
+useful when a fragment is meant to be rerendered on its own.
 
 For example, a subtree may consist of a node with two sets of
 children that update independently:
@@ -116,11 +137,29 @@ children that update independently:
 Having the separate objects of the form `{nodes}` allows each of those
 to independently have a `next` field.
 
-## Installing
+#### Fragments are first-class
 
-The vdom package is not avaiable in npm. Install this direclty from
-github via `npm add https://github.com/dotchain/vdom` or
-`yarn add https://github.com/dotchain/vdom`.
+Fragments are effectively treated as first-class objects.  For
+instance, the top-level VDOM entry is expected to be a fragment (and
+so multiple nodes can be created that way).  Any situation where a
+single element is expected, a fragment can be used leading to useful
+nesting behaviors:
+
+```js
+{
+  tag: 'div',
+  props: {...},
+  contents: [
+    {tag: ..},
+    [
+      // nesting!
+    ]
+ ]
+}
+```
+
+This allows a component to return a fragment when it is rendered
+without resorting to container divs.
 
 ## API
 
@@ -140,7 +179,7 @@ provided in `vdom/events.js` (see [Events](#events))
 
 For small apps, the easiest implementtion of rendering is to use pure
 immutable vdoms.  Each renderer is simply a function that uses state
-and returns the vdom and using direct function composition:
+and returns the vdom using direct function composition:
 
 ```js
 const render = {
@@ -170,11 +209,11 @@ like so:
 
 ```js
 function main() {
-  this.data = ...; // sync this data
+  const data = ...; // sync this data
   const events = ...; // create event manager
   const r = reconciler(root, events);
 
-  // render the app!
+  // rerender the app on each animation refresh
   const loop = () =>  window.requestAnimationFrame(() => {
     loop();
     r.reconcile(render.app(data));
@@ -182,9 +221,9 @@ function main() {
 }
 ```
 
-See [stream
+See the [stream
 demo](https://github.com/dotchain/vdom/blob/master/example/stream/README)
-for a stream-based TODO-MVC demo,
+for a stream-based TODO-MVC demo using this method.
 
 The approach above causes a full rerender into virtual DOM, on every
 animation refresh.  But since virtual DOM rerenders are efficient
@@ -194,7 +233,7 @@ underlyling real DOM), for most use cases this works fine.
 ### Almost immutable rerenderers
 
 If the virtual DOM is relatively large or expensive to reconstruct, an
-app can take advantage of the fact that the `reconcile` method apply
+app can take advantage of the fact that the `reconcile` method can handle
 partial sub-tree changes.  Each renderer has its own mechanism to
 detect when it has to be updated (maybe using data models that have
 subscriptions) and when this happens, it simply adds the newly
@@ -205,7 +244,7 @@ app with each component updating its own `next` field:
 
 ```js
 function main() {
-  this.data = ...; // sync this data
+  const data = ...; // sync this data
   const events = ...; // create event manager
   const r = reconciler(root, events);
 
@@ -225,7 +264,7 @@ function main() {
 
 ## Events
 
-An example `delegated events` implementation is available vai
+An example `delegated events` implementation is available in
 `vdom/events.js`:
 
 ```js
@@ -235,11 +274,38 @@ An example `delegated events` implementation is available vai
    const r = reconciler(root, new Events(WeakMap, root, handler, {});
 ```
 
-The [element](#element) virtual DOM object has an `events` property
-that allows specifying events and associated data.  When the
-corresponding event fires, the handler will be called both with the
-actual DOM event and the virtual data from the events hash.  This
-allows event handlers to be implemented.
+The `events` property (see [element](#element)) can specify DOM events
+and their associated data. When the corresponding event fires, the
+handler (in the example above) will be called both with the actual DOM
+event and the data from the events hash.  This allows event handlers
+to be implemented.
+
+An example `click` handler setup for a button:
+
+```js
+const render = {
+  // renderer sets up click event
+  button(label, clickData) {
+    const events = {click: clickData};
+    return {tag: 'button', props: {}, events, contents: {text: label}};
+  },
+  app(data) {
+    ...
+  }
+}
+
+function main() {
+   const {reconciler} = require('vdom');
+   const {Events} = require('vdom/events.js');
+   const handler = (event, data) => {
+     if (event.type == 'click') {
+        // data == clickData.  Do whatever action is needed!
+     }
+   };
+   const r = reconciler(root, new Events(WeakMap, root, handler, {});
+   r.reconcile(render.app(data))
+}
+```
 
 See
 [ui.js](https://github.com/dotchain/vdom/blob/master/example/stream/ui.js)

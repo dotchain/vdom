@@ -3205,7 +3205,7 @@ stream-shift@^1.0.0:
 
 "streams@https://github.com/dotchain/streams.git":
   version "0.0.0"
-  resolved "https://github.com/dotchain/streams.git#410f50e159d1e88e341e7ee02376c17859c73d0c"
+  resolved "https://github.com/dotchain/streams.git#41bfe7ace28e829bcc620e57406d7b92ad1c5d2e"
 
 string-width@^1.0.1:
   version "1.0.2"
