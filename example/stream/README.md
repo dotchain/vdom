@@ -47,6 +47,32 @@ The renderers generally accept two
     setup in
     [app.js](https://github.com/dotchain/vdom/blob/master/example/stream/app.js).
 
+An example renderer is how a single `todo` item is rendered:
+
+```
+function todo(id, data, state) {
+  const deleteAction = ui.action.replace(data.deleted, true);
+  const c = data.completed.valueOf() ? "completed" : "";
+  return ui.withClass(c, {
+    tag: "li",
+    key: id,
+    props: {},
+    contents: [
+      {
+        tag: "div",
+        props: { class: "view" },
+        contents: [
+          ui.withClass("toggle", ui.stream.checkbox(data.completed)),
+          ui.stream.label(data.description),
+          ui.withClass("destroy", ui.stream.button("", deleteAction))
+        ]
+      },
+      ui.withClass("edit", ui.stream.text(data.description))
+    ]
+  });
+}
+```
+
 The basic low-level UI primitives are implemented in
 [ui.js](https://github.com/dotchain/vdom/blob/master/example/stream/ui.js).
 The text input is a good example which illustrates how mutations work:
@@ -60,15 +86,15 @@ function text(s) {
 ```
 
 The `events` property is wired with `keyup` event handlers. These map
-to the `replace(s)` action which itself is simply just the hash
-`{replace: s.ref()}`.  The `ref()` call implemented by the
-[streams](https://github.com/dotchain/streams) package simply returns
-the full path to the stream being used.  For instance, if the text was
-mapped to `data.todos.get(id).description`, the `ref` would be
-`['todos', id, 'description']`.
+to the `replace(s)` action which returns a hash
+`{replace: s.ref()}`.  The `ref()` call is implemented by the
+[streams](https://github.com/dotchain/streams) package -- this returns
+the full path to the stream being used.
 
-In the button example, this would make the `events` property be
-something like `{keyup: {replace: ['todos', id, 'description']}}`.
+In the `todo()` renderer example, `data.desccription` is passed to
+`ui.stream.text` and so `s.ref()` would be `['todos', id,
+'description']` in this case (because `data` is itself
+`root.todos.get(id)`).
 
 The actual events handler is setup in
 [app.js](https://github.com/dotchain/vdom/blob/master/example/stream/app.js)
