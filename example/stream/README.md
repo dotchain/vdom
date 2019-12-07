@@ -8,9 +8,10 @@ using the VDOM reconciler.
 1. [Running the demo](#running-the-demo)
 2. [Code organization](#code-organization)
 3. [How the demo works](#how-the-demo-works)
-    1. [Handling state streams.](#handling-state-streams)
-    2. [Standard actions.](#standard-actions)
-    3. [Custom actions.](#custom-actions)
+    1. [Handling state streams](#handling-state-streams)
+    2. [Standard actions](#standard-actions)
+    3. [Custom actions](#custom-actions)
+    4. [URL routing](#url-routing)
 
 ## Running the demo
 
@@ -103,7 +104,7 @@ The actual events handler is setup in
 which then resolves the path into the correct stream object and
 updates it accordingly.
 
-### Handling state streams.
+### Handling state streams
 
 The `state` streams are a bit different in that they are rooted at a
 different object. So,
@@ -115,7 +116,7 @@ which the event handler then uses to route to the right stream.
     from the streams package.
 
 
-### Standard actions.
+### Standard actions
 
 A set of standard actions are implemented in
 [ui.js](https://github.com/dotchain/vdom/blob/master/example/stream/ui.js):
@@ -136,7 +137,7 @@ A set of standard actions are implemented in
   app, this is done by using `uuidv4()` as the unique key generator.
 
 
-### Custom actions.
+### Custom actions
 
 Custom actions are not fully fleshed out.  It is common for individual
 renderers to have custom actions that are local to it. The current
@@ -148,4 +149,18 @@ globally by `App` (i..e via the `handleEvent` method in
 A better model would be a custom-action registration mechanism in
 ui.js.
 
+### URL routing
 
+The example here uses URL hashes to route filters (`#/active') but to
+avoid polluting the renderers with this knowledge, the main `App`
+class just copies the URL hash into `state.filter`.  Mutating the hash
+is done via simple `<a href="#/completed">` tags and the main App
+reacts to this and updates the state accordingly.
+
+This trick of mutating the hashes vai `<a>` links is awkward and does
+not work so well with URL path elements. A better strategy is a
+two-way binding between `state.filter` and the URL hash: the renderer
+just updates the `state.filter` just like any other stream mutations
+(via button + action replace) with the main app just reacting to that
+and silently updating the URL (so that a refresh would work
+correclty).

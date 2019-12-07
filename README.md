@@ -18,8 +18,9 @@ This package implements a zero-dependency simple virtual DOM manager.
     1. [Pure immutable renderers](#pure-immutable-renderers)
     2. [Almost immutable rerenderers](#almost-immutable-rerenderers)
 5. [Events](#events)
-6. [Testing](#testing)
-7. [Demos](#demos)
+6. [Server vs Client rendering](#server-vs-client-rendering)
+7. [Testing](#testing)
+8. [Demos](#demos)
 
 ## Installing
 
@@ -311,6 +312,35 @@ See
 [ui.js](https://github.com/dotchain/vdom/blob/master/example/stream/ui.js)
 for an example event handler (function `handle`).
 
+## Server vs Client rendering
+
+The reconciler used here allows renderers to emit raw JSON.  While the
+reconciler itself is not of any value in a server-rendering setup,
+this split allows a server rendering to be rather trivial. Infact,
+using the [jsdom](https://github.com/jsdom/jsdom) package, the actual
+rendering to HTML can be done trivially like so:
+
+```js
+
+const {JSDOM} = require('jsdom');
+cosnt {Events} = require('vdom/events.js');
+const {reconciler} = require('vdom');
+
+function toHTML(...) {
+  const dom = new JSDOM(`<!DOCTYPE html><div></div>`);
+  const root = dom.window.document.querySelector('div');
+  const eventsManager = new Events(WeakMap, root);
+  const r = reconciler(root, eventsManager);
+  r.reconcile(...render the app vdom...);
+  return dom.serialize();
+}
+```
+
+Note that the events manager provided does not serialize event
+handlers properly because most events do not map cleanly to server
+side implementations.  Instead, the renderers used should generate
+html form action URLs to make things work with server rendering.
+
 ## Testing
 
 ```bash
@@ -324,4 +354,5 @@ An implementation which uses
 [streams](https://github.com/dotchain/streams) for data model
 synchronization is available in the
 [example/stream](https://github.com/dotchain/vdom/blob/master/example/stream)
-folder. 
+folder.
+
