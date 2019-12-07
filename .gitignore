@@ -63,3 +63,6 @@ typings/
 # no dist.js or min.js
 *.dist.js
 *.min.js
+
+# no code coverage
+*.lcov
