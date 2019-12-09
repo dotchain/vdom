@@ -8,9 +8,11 @@ exports.app = app;
 
 // render a single todo
 function todo(id, data, state) {
+  const editing = state.get(id).get("editing");
   const deleteAction = ui.action.replace(data.deleted, true);
-  const c = data.completed.valueOf() ? "completed" : "";
-  return ui.withClass(c, {
+  const labelEvents = { dblclick: ui.action.replace(editing, true) };
+  const classes = { completed: data.completed, editing };
+  return ui.withClass(classes, {
     tag: "li",
     key: id,
     props: {},
@@ -20,11 +22,14 @@ function todo(id, data, state) {
         props: { class: "view" },
         contents: [
           ui.withClass("toggle", ui.stream.checkbox(data.completed)),
-          ui.stream.label(data.description),
+          ui.withEvents(labelEvents, ui.stream.label(data.description)),
           ui.withClass("destroy", ui.stream.button("", deleteAction))
         ]
       },
-      ui.withClass("edit", ui.stream.text(data.description))
+      ui.withClass(
+        "edit",
+        ui.stream.conditionalTextEdit(data.description, editing)
+      )
     ]
   });
 }
@@ -68,10 +73,10 @@ function newTodo(data, state) {
 function toggleAll(data, state) {
   const checked = incompleteCount(data) !== 0;
   const events = { click: { setAll: checked } };
-  const idclass = (id, spec) => ui.withId(id, ui.withClass(id, spec))
-  
+  const idclass = (id, spec) => ui.withId(id, ui.withClass(id, spec));
+
   return [
-    idclass('toggle-all', ui.stream.checkbox(checked, events)),
+    idclass("toggle-all", ui.stream.checkbox(checked, events)),
     ui.stream.label("Mark all as complete", "toggle-all")
   ];
 }

@@ -39,9 +39,7 @@ function reconciler(root, events) {
       return vdom;
     },
     reconcile(json) {
-      const active = root.ownerDocument.activeElement;
-      vdom = r.updateChildren(root, vdom, json);
-      active.focus();
+      vdom = r.reconcile(root, vdom, json);
       return vdom;
     }
   };
@@ -52,6 +50,20 @@ class Reconciler {
   constructor(doc, events) {
     this.doc = doc;
     this.events = events;
+    this.active = null;
+    this.autoFocus = null;
+  }
+
+  reconcile(root, before, after) {
+    this.autoFocus = null;
+    const active = this.doc.activeElement;
+    if (active !== this.doc.body) this.active = active;
+    try {
+      return this.updateChildren(root, before, after);
+    } finally {
+      const elt = this.autoFocus || this.active;
+      if (elt && this.doc.activeElement === this.doc.body) elt.focus();
+    }
   }
 
   // updateChildren returns updated spec;
@@ -63,8 +75,10 @@ class Reconciler {
     after = latest(after);
     const childNodes = [];
     const spec = Specs.mapChild("", after, (key, spec) => {
+      const wasActive = (beforeMap[key] || {}).node === this.active;
       const result = this.updateNode(beforeMap, key, spec);
       childNodes.push(result.node);
+      if (wasActive) this.active = result.node;
       return result.spec;
     });
 
@@ -72,6 +86,7 @@ class Reconciler {
     for (let key in beforeMap) {
       const node = beforeMap[key].node;
       node.parentNode.removeChild(node);
+      if (node === this.active) this.active = null;
     }
 
     // replace children collection
@@ -87,6 +102,9 @@ class Reconciler {
     if (!b || b.spec.tag !== spec.tag) {
       if (!isText(spec)) {
         const node = this.doc.createElement(spec.tag);
+        if (spec.props.hasOwnProperty("autofocus")) {
+          this.autoFocus = node;
+        }
         const before = { tag: spec.tag, props: {}, contents: {} };
         return this._updateNonTextNode(node, before, spec);
       }
@@ -94,7 +112,7 @@ class Reconciler {
       return { spec, node: this.doc.createTextNode(spec.text) };
     }
 
-    delete (beforeMap, key);
+    delete beforeMap[key];
 
     const { node, spec: before } = b;
     if (isText(spec)) {
@@ -148,6 +166,7 @@ class Reconciler {
     // text node sometimes.
     while (elt.firstChild !== null && elt.firstChild !== childNodes[0]) {
       elt.removeChild(elt.firstChild);
+      if (elt === this.active) this.active = null;
     }
   }
 }
