@@ -1,15 +1,27 @@
 "use strict";
 
-exports.stream = { text, form, checkbox, button, label, h1, section };
+exports.stream = {
+  text,
+  form,
+  checkbox,
+  button,
+  label,
+  h1,
+  section,
+  textEdit,
+  conditionalTextEdit
+};
 exports.action = { replace, handle };
+exports.kbd = { onEnter, onEscape };
 
 exports.withClass = withClass;
 exports.withPlaceholder = withPlaceholder;
 exports.withAutofocus = withAutofocus;
 exports.withId = withId;
+exports.withEvents = withEvents;
 
 function label(s, labelFor) {
-  const props = {'for': labelFor};
+  const props = { for: labelFor };
   return { tag: "label", props, contents: { text: s.valueOf() } };
 }
 
@@ -21,8 +33,23 @@ function section(contents) {
   return { tag: "section", props: {}, contents };
 }
 
-function text(s) {
-  const events = { keyup: replace(s) };
+function conditionalTextEdit(s, editing) {
+  if (!editing.valueOf()) return {};
+  const endEdit = replace(editing, null);
+  const e = textEdit(s, [replace(s), endEdit], endEdit, endEdit);
+  return withAutofocus(e);
+}
+
+function textEdit(s, enter, blur, escape) {
+  const events = { keyup: [] };
+  if (blur) events.blur = blur;
+  if (enter) events.keyup.push(onEnter(enter));
+  if (escape) events.keyup.push(onEscape(escape));
+  return text(s, events);
+}
+
+function text(s, events) {
+  events = events || { keyup: replace(s) };
   const props = { type: "text", value: s.valueOf() || "" };
   return { tag: "input", props, events, contents: {} };
 }
@@ -46,7 +73,20 @@ function button(label, action) {
 }
 
 function withClass(className, spec) {
-  spec.props["class"] = className;
+  if (!spec || !spec.props) return spec;
+
+  className = className.valueOf();
+  if (Array.isArray(className)) {
+    spec.props["class"] = className.join(" ");
+  } else if (typeof className == "object") {
+    const o = [];
+    for (let key in className) {
+      if ((className[key] || false).valueOf()) o.push(key);
+    }
+    spec.props["class"] = o.join(" ");
+  } else {
+    spec.props["class"] = className;
+  }
   return spec;
 }
 
@@ -65,14 +105,26 @@ function withId(id, spec) {
   return spec;
 }
 
+function withEvents(events, spec) {
+  spec.events = events || {};
+  for (let key in events) {
+    spec.events[key] = events[key];
+  }
+  return spec;
+}
+
 // Actions
 
 function replace(stream, value) {
   if (arguments.length === 1) return { replace: stream.ref() };
 
-  if (typeof value !== "object") {
+  if (!value || typeof value !== "object") {
     // TODO: fix this hacky way to check for basic type
     return { replace: stream.ref(), value };
+  }
+
+  if (value.ref) {
+    return { replace: stream.ref(), valueref: value.ref() };
   }
 
   const action = { replace: stream.ref(), value: {} };
@@ -90,21 +142,34 @@ function replace(stream, value) {
   return action;
 }
 
+function onEnter(action) {
+  return { onKey: action, key: "Enter" };
+}
+
+function onEscape(action) {
+  return { onKey: action, key: "Escape" };
+}
+
 function handle(data, state, e, action) {
-  e.preventDefault();
   if (Array.isArray(action)) {
     action.map(a => handle(data, state, e, a));
     return;
   }
-  const value = actionValue(e, action);
+  if (e.type.startsWith("key") && action.hasOwnProperty("onKey")) {
+    if (action.key !== e.key) return;
+    return handle(data, state, e, action.onKey);
+  }
+  const resolve = path => {
+    if (path[0] === "state") {
+      return resolvePath(state.latest(), path.slice(1));
+    }
+    return resolvePath(data.latest(), path);
+  };
+
+  const value = actionValue(e, action, resolve);
   const path = action.replace;
   for (let key in action.streams || {}) {
-    const path = action.streams[key];
-    if (path[0] === "state") {
-      value[key] = resolvePath(state.latest(), path.slice(1));
-    } else {
-      value[key] = resolvePath(data.latest(), path);
-    }
+    value[key] = resolve(action.streams[key]);
   }
   replacePath(data, state, path, value);
 }
@@ -118,6 +183,7 @@ function resolvePath(stream, path) {
 
 function actionValue(e, action) {
   if (action.hasOwnProperty("value")) return action.value;
+  if (action.hasOwnProperty("valueref")) return resolve(action.valueref);
   if (e.target.type === "checkbox") return e.target.checked;
   return e.target.value;
 }

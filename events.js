@@ -15,7 +15,11 @@ class Events {
     this._handler = handler;
     this._dispatcher = e => this._dispatch(e);
     this._counts = {};
-    this._directEvents = directEvents || { move: true };
+    this._directEvents = directEvents || {
+      move: true,
+      blur: true,
+      focus: true
+    };
   }
 
   update(elt, before, after) {
