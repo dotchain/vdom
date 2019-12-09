@@ -9,6 +9,7 @@ exports.stream = {
   h1,
   section,
   textEdit,
+  textLive,
   conditionalTextEdit
 };
 exports.action = { replace, handle };
@@ -38,6 +39,14 @@ function conditionalTextEdit(s, editing) {
   const endEdit = replace(editing, null);
   const e = textEdit(s, [replace(s), endEdit], endEdit, endEdit);
   return withAutofocus(e);
+}
+
+function textLive(s, enter, blur, escape) {
+  const events = { keyup: [replace(s)] };
+  if (blur) events.blur = blur;
+  if (enter) events.keyup.push(onEnter(enter));
+  if (escape) events.keyup.push(onEscape(escape));
+  return text(s, events);
 }
 
 function textEdit(s, enter, blur, escape) {
