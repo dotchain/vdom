@@ -9,7 +9,6 @@ const render = require("./render.js");
 class App {
   constructor() {
     const root = document.body;
-    window.addEventListener("hashchange", () => this.onHashChanged());
     root.innerHTML = "";
     const handler = (e, action) => this.handleEvent(e, action);
     const eventsManager = new Events(WeakMap, root, handler);
@@ -19,7 +18,7 @@ class App {
   }
 
   run() {
-    const state = streams.wrap({ filter: this._currentFilter() });
+    const state = streams.wrap({ location: { hash: window.location.hash } });
     const data = streams.wrap({ todos: {} });
     this.rerender(data, state.withRef(["state"]));
     requestAnimationFrame(() => this.onAnimationFrame());
@@ -34,25 +33,13 @@ class App {
     }
   }
 
-  onHashChanged() {
-    this.state.filter.replace(this._currentFilter());
-    this.rerender(this.data, this.state.latest());
-  }
-
-  _currentFilter() {
-    switch (window.location.hash) {
-      case "#/active":
-        return "active";
-      case "#/completed":
-        return "completed";
-    }
-    return "";
-  }
-
   rerender(data, state) {
     this.data = data;
     this.state = state;
     this.reconciler.reconcile(render.app(data, state));
+    if (window.location.hash !== this.state.location.hash.valueOf()) {
+      window.location.hash = this.state.location.hash.valueOf();
+    }
   }
 
   handleEvent(e, action) {

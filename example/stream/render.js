@@ -55,14 +55,17 @@ function newTodo(data, state) {
   // clear input action clears the input box
   const clearInputAction = ui.action.replace(desc, "");
 
+  const enter = [ui.action.replace(desc), appendAction, clearInputAction];
+  const blur = null;
+  const escape = [clearInputAction];
   return ui.withClass("header", {
     tag: "header",
     props: {},
     contents: [
       ui.stream.h1("todos"),
-      ui.stream.form(
-        [appendAction, clearInputAction],
-        ui.withClass("new-todo", ph(af(ui.stream.text(desc))))
+      ui.withClass(
+        "new-todo",
+        ph(af(ui.stream.textLive(desc, enter, blur, escape)))
       )
     ]
   });
@@ -83,17 +86,21 @@ function toggleAll(data, state) {
 
 // render the list of todos
 function todos(data, state) {
-  const matches = (filter, todo) => {
+  const matches = todo => {
+    const deleted = todo.deleted.valueOf();
     const completed = todo.completed.valueOf();
-    return filter === "" || (filter == "completed") === completed;
+    switch (state.location.hash.valueOf()) {
+      case "#/active":
+        return !deleted && !completed;
+      case "#/completed":
+        return !deleted && completed;
+    }
+    return !deleted;
   };
 
   const ids = [];
   data.forEachKey(key => {
-    if (
-      !data[key].deleted.valueOf() &&
-      matches(state.filter.valueOf(), data[key])
-    ) {
+    if (matches(data[key])) {
       ids.push(key);
     }
   });
@@ -136,26 +143,31 @@ function itemCount(data, state) {
 }
 
 // render one of the filter options
-function filterButton(text, href, selected) {
-  const link = { tag: "a", props: { href }, contents: { text } };
+function filterButton(text, expectedHash, hash) {
+  const hashv = hash.valueOf();
+  if (hashv !== "#/active" || hashv !== "#/completed") {
+    hashv == "#/";
+  }
+  const events = { click: ui.action.replace(hash, expectedHash) };
   return {
     tag: "li",
     props: {},
-    contents: ui.withClass(selected ? "selected" : "", link)
+    contents: ui.withClass(
+      { selected: hashv === expectedHash },
+      { tag: "a", props: {}, events, contents: { text } }
+    )
   };
 }
 
 // render the filter options
 function filters(data, state) {
-  const filter = state.filter.valueOf();
-
   return {
     tag: "ul",
     props: { class: "filters" },
     contents: [
-      filterButton("All", "#", filter == ""),
-      filterButton("Active", "#/active", filter == "active"),
-      filterButton("Completed", "#/completed", filter == "completed")
+      filterButton("All", "#/", state.location.hash),
+      filterButton("Active", "#/active", state.location.hash),
+      filterButton("Completed", "#/completed", state.location.hash)
     ]
   };
 }
