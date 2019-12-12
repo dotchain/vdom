@@ -1,8 +1,6 @@
 /* eslint-env mocha, browser */
 
-exports.expect = expect;
-
-function expect(v) {
+exports.expect = function expect(v) {
   function assert(isEqual, other) {
     if (!isEqual) {
       throw new Error(
@@ -28,6 +26,11 @@ function expect(v) {
         expect(v[key]).to.deep.equal(other[key]);
       }
     }
+    for (let key in other) {
+      if (other.hasOwnProperty(key)) {
+        expect(v.hasOwnProperty(key)).to.equal(true);
+      }
+    }
   }
   return { to: { equal: equal, deep: { equal: deepEqual } } };
-}
+};
