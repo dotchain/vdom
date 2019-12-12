@@ -1,25 +1,18 @@
 "use strict";
 
-// Events implements an event delegation framework to work with
-// vdom.
+// Events implements a declarative  event delegation framework.
 //
 // The constructor works with a WeakMap implementation (can be a
 // polyfill).  The root DOM node is used for event delegation (all
-// events are registered at the root node) except when the event name
-// is a key to the directEvents map (when it is registered directly on
-// the element).
+// events are registered at the root node) except for specific events
+// that do not bubble.
 class Events {
-  constructor(WeakMap, root, handler, directEvents) {
+  constructor(WeakMap, root, handler) {
     this._elts = new WeakMap();
     this._root = root;
     this._handler = handler;
     this._dispatcher = e => this._dispatch(e);
     this._counts = {};
-    this._directEvents = directEvents || {
-      move: true,
-      blur: true,
-      focus: true
-    };
   }
 
   update(elt, before, after) {
@@ -38,7 +31,7 @@ class Events {
   _add(elt, key, value) {
     this._elts.set(elt, this._elts.get(elt) || {});
     this._elts.get(elt)[key] = value;
-    if (this._directEvents.hasOwnProperty(key)) {
+    if (!this.bubbles(key)) {
       elt.addEventListener(key, this._dispatcher);
     } else {
       const refcount = this._counts[key] || 0;
@@ -56,7 +49,7 @@ class Events {
     if (!events || !events.hasOwnProperty(key)) return;
 
     delete this._elts.get(elt)[key];
-    if (this._directEvents.hasOwnProperty(key)) {
+    if (!this.bubbles(key)) {
       elt.removeEventListener(key, this._dispatcher);
     } else {
       this._counts[key]--;
@@ -72,6 +65,11 @@ class Events {
       return this._handler(e, events[e.type]);
     }
     this._remove(e.target, e.type);
+  }
+
+  bubbles(eventName) {
+    const n = eventName;
+    return n !== "move" && n !== "blur" && n !== "focus";
   }
 }
 
