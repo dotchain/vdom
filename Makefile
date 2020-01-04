@@ -20,6 +20,8 @@ NODE_MODULES_BIN=node_modules/.bin
 # Node utilities
 ESLINT=$(NODE_MODULES_BIN)/eslint
 NYC=$(NODE_MODULES_BIN)/nyc
+MOCHA=$(NODE_MODULES_BIN)/mocha
+YARN=$(NODE_MODULES_BIN)/yarn
 WEBPACK=$(NODE_MODULES_BIN)/webpack
 WEBPACK_CLIENT_CONFIG=webpack-client.config.js
 
@@ -29,10 +31,10 @@ build: dist/nomplate.js dist/nomplate.min.js dist/nomplate.min.gz
 
 # Run all JavaScript tests
 test: ${NODE}
-	${NYC} ${TEST_FILES}
+	${NYC} ${MOCHA} ${TEST_FILES}
 
 test-w: ${NODE}
-	${NYC} ${TEST_FILES} -w
+	${NYC} ${MOCHA} ${TEST_FILES} -w
 
 # Open a new chrome tab at chrome://inspect and click the small blue link
 # that says, "Open dedicated DevTools for Node."
@@ -42,7 +44,7 @@ test-debug: ${NODE}
 build-module: src/*
 
 publish: clean build
-	npm publish
+	$(NPM) publish
 
 dist/nomplate.js: index.js src/*
 	$(WEBPACK) --mode development --config $(WEBPACK_CLIENT_CONFIG) index.js --output dist/nomplate.js
@@ -55,7 +57,7 @@ dist/nomplate.min.gz: dist/nomplate.min.js
 
 dist/express.js:
 	$(WEBPACK) --mode development --config $(WEBPACK_SERVER_CONFIG) express.js --output dist/express.js
-	
+
 lint:
 	$(ESLINT) --config $(PROJECT_ROOT)/.eslintrc.json .
 
@@ -70,13 +72,13 @@ clean:
 	rm -f .tmp-view.html
 
 yarn:
-	npm install -g yarn
+	$(NPM) install yarn --save-dev
 
 # Intall development dependencies (OS X and Linux only)
 dev-install: $(NODE) yarn
 
 yarn-install:
-	yarn install
+	$(YARN) install
 
 # Download and unpack the Node binaries into lib/nodejs.
 $(NODE):
