@@ -258,55 +258,55 @@ describe("vdom", () => {
 describe("vdom+events", () => {
   [true, false].map(direct => {
     const suffix = " (direct = " + direct + ")";
-    const m = direct ? { click: true } : null;
+    const name = direct ? "move" : "click";
+    const events = { [name]: "hello" };
+    const events2 = { [name]: "hello" };
 
     it("adds event handlers" + suffix, () => {
       const dom = new JSDOM(`<!DOCTYPE html><p></p>`);
       const root = dom.window.document.querySelector("p");
-      const events = [];
-      const handler = (e, value) => events.push(value);
-      const r = reconciler(root, new Events(WeakMap, root, handler, m));
+      const fired = [];
+      const handler = (e, value) => fired.push(value);
+      const r = reconciler(root, new Events(WeakMap, root, handler));
 
       const spec = div(null, {});
-      spec.events = { click: "hello" };
+      spec.events = events;
       r.reconcile(spec);
 
-      const click = new dom.window.MouseEvent("click", { bubbles: true });
-      root.firstChild.dispatchEvent(click);
-      expect(events.length).to.equal(1);
-      expect(events[0]).to.equal("hello");
+      const e = new dom.window.MouseEvent(name, { bubbles: !direct });
+      root.firstChild.dispatchEvent(e);
+      expect(fired).to.deep.equal(["hello"]);
     });
 
     it("updates event handlers" + suffix, () => {
       const dom = new JSDOM(`<!DOCTYPE html><p></p>`);
       const root = dom.window.document.querySelector("p");
-      const events = [];
-      const handler = (e, value) => events.push(value);
-      const r = reconciler(root, new Events(WeakMap, root, handler, m));
+      const fired = [];
+      const handler = (e, value) => fired.push(value);
+      const r = reconciler(root, new Events(WeakMap, root, handler));
 
-      r.reconcile(Object.assign(div("boo"), { events: { click: "hello" } }));
-      r.reconcile(Object.assign(div("boo"), { events: { click: "world" } }));
+      r.reconcile(Object.assign(div("boo"), { events }));
+      r.reconcile(Object.assign(div("boo"), { events: events2 }));
 
-      const click = new dom.window.MouseEvent("click", { bubbles: true });
-      root.firstChild.dispatchEvent(click);
-      expect(events.length).to.equal(1);
-      expect(events[0]).to.equal("world");
+      const e = new dom.window.MouseEvent(name, { bubbles: !direct });
+      root.firstChild.dispatchEvent(e);
+      expect(fired).to.deep.equal([events2[name]]);
     });
 
     it("deletes event handlers" + suffix, () => {
       const dom = new JSDOM(`<!DOCTYPE html><p></p>`);
       const root = dom.window.document.querySelector("p");
-      const events = [];
-      const handler = (e, value) => events.push(value);
-      const r = reconciler(root, new Events(WeakMap, root, handler, m));
+      const fired = [];
+      const handler = (e, value) => fired.push(value);
+      const r = reconciler(root, new Events(WeakMap, root, handler));
 
-      r.reconcile(Object.assign(div("boo"), { events: { click: "hello" } }));
+      r.reconcile(Object.assign(div("boo"), { events }));
       r.reconcile(div("boo", {}));
 
-      const click = new dom.window.MouseEvent("click", { bubbles: true });
+      const e = new dom.window.MouseEvent(name, { bubbles: !direct });
 
-      root.firstChild.dispatchEvent(click);
-      expect(events.length).to.equal(0);
+      root.firstChild.dispatchEvent(e);
+      expect(fired.length).to.equal(0);
     });
 
     if (direct) return;
@@ -314,28 +314,25 @@ describe("vdom+events", () => {
     it("refcounts properly", () => {
       const dom = new JSDOM(`<!DOCTYPE html><p></p>`);
       const root = dom.window.document.querySelector("p");
-      const events = [];
-      const handler = (e, value) => events.push(value);
-      const r = reconciler(root, new Events(WeakMap, root, handler, m));
+      const fired = [];
+      const handler = (e, value) => fired.push(value);
+      const r = reconciler(root, new Events(WeakMap, root, handler));
 
       r.reconcile(
-        Object.assign(
-          div("boo", {}, [
-            Object.assign(div("boo"), { events: { click: "child" } })
-          ]),
-          { events: { click: "parent" } }
-        )
+        Object.assign(div("boo", {}, [Object.assign(div("boo"), { events })]), {
+          events: events2
+        })
       );
-      r.reconcile(Object.assign(div("boo"), { events: { click: "parent" } }));
+      r.reconcile(Object.assign(div("boo"), { events: events2 }));
 
-      const click = new dom.window.MouseEvent("click", { bubbles: true });
-      root.firstChild.dispatchEvent(click);
-      expect(events.length).to.equal(1);
+      const e = new dom.window.MouseEvent(name, { bubbles: !direct });
+      root.firstChild.dispatchEvent(e);
+      expect(fired).to.deep.equal([events2[name]]);
 
       r.reconcile(div("boo", {}));
 
-      root.firstChild.dispatchEvent(click);
-      expect(events.length).to.equal(1);
+      root.firstChild.dispatchEvent(e);
+      expect(fired).to.deep.equal([events2[name]]);
     });
   });
 });

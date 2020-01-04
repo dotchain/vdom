@@ -10,7 +10,7 @@
     "test": "nyc mocha *_test.js",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "pretty": "find . -name '*.js' | grep -v node_modules | xargs yarn prettier --write",
-    "stream_server": "cd example/stream; python -m SimpleHTTPServer 8081",
+    "stream_server": "node example/stream/static_server.jsm 8081",
     "stream": "yarn webpack -o example/stream/app.dist.js --mode development example/stream/app.js"
   },
   "nyc": {
