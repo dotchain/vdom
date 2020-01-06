@@ -3,31 +3,39 @@
 ###########################################################
 
 # Operating System (darwin or linux)
-PLATFORM:=$(shell uname | tr A-Z a-z)
 ARCH=x64
+PLATFORM:=$(shell uname | tr A-Z a-z)
 PROJECT_ROOT=$(shell git rev-parse --show-toplevel)
 
 # Nodejs
-NODE_VERSION=12.14.0
 NODE=lib/nodejs/bin/node
-NPM=lib/nodejs/bin/npm
-
-# Derived values
-NODE_FILENAME=node-v$(NODE_VERSION)-$(PLATFORM)-$(ARCH)
-TEST_FILES=`find . -name "*_test.js" ! -path "*node_modules*"`
 NODE_MODULES_BIN=node_modules/.bin
+NODE_VERSION=12.14.0
 
-# Node utilities
-ESLINT=$(NODE_MODULES_BIN)/eslint
-NYC=$(NODE_MODULES_BIN)/nyc
-MOCHA=$(NODE_MODULES_BIN)/mocha
-YARN=$(NODE_MODULES_BIN)/yarn
-WEBPACK=$(NODE_MODULES_BIN)/webpack
+# Values
+NPM=lib/nodejs/bin/npm
+PORT=8081
+SRC_FILES=$(shell find . -name "*js" ! -path "*node_modules*" ! -path "*.dist.js")
+TEST_FILES=$(shell find . -name "*_test.js" ! -path "*node_modules*")
 WEBPACK_CLIENT_CONFIG=webpack-client.config.js
 
-.PHONY: test test-w dev-install build build-module lint clean
+# Derived values
+ESLINT=$(NODE_MODULES_BIN)/eslint
+MOCHA=$(NODE_MODULES_BIN)/mocha
+NODEMON=${NODE_MODULES_BIN}/nodemon
+NODE_FILENAME=node-v$(NODE_VERSION)-$(PLATFORM)-$(ARCH)
+NYC=$(NODE_MODULES_BIN)/nyc
+WEBPACK=$(NODE_MODULES_BIN)/webpack
+YARN=$(NODE_MODULES_BIN)/yarn
 
-build: dist/nomplate.js dist/nomplate.min.js dist/nomplate.min.gz
+.PHONY: build coverage test test-w test-debug dev-install build build-module lint clean
+
+# Build the example app distribution
+example/stream/app.dist.js: ${SRC_FILES}
+	${YARN} webpack -o example/stream/app.dist.js --mode development example/stream/app.js
+
+# Build any source files
+build: ${NODE} example/stream/app.dist.js
 
 # Run all JavaScript tests
 test: ${NODE}
@@ -39,35 +47,28 @@ test-w: ${NODE}
 # Open a new chrome tab at chrome://inspect and click the small blue link
 # that says, "Open dedicated DevTools for Node."
 test-debug: ${NODE}
-	${NYC} --inspect-brk
+	${NYC} ${MOCHA} ${TEST_FILES} --inspect-brk
 
-build-module: src/*
-
-publish: clean build
-	$(NPM) publish
-
-dist/nomplate.js: index.js src/*
-	$(WEBPACK) --mode development --config $(WEBPACK_CLIENT_CONFIG) index.js --output dist/nomplate.js
-
-dist/nomplate.min.js: index.js src/*
-	$(WEBPACK) --mode production --optimize-minimize --config $(WEBPACK_CLIENT_CONFIG) index.js --output dist/nomplate.min.js
-
-dist/nomplate.min.gz: dist/nomplate.min.js
-	gzip --best -c dist/nomplate.min.js > dist/nomplate.min.gz
-
-dist/express.js:
-	$(WEBPACK) --mode development --config $(WEBPACK_SERVER_CONFIG) express.js --output dist/express.js
-
+# NOTE: Currently broken b/c eslint dependencies are too painful
 lint:
-	$(ESLINT) --config $(PROJECT_ROOT)/.eslintrc.json .
+	$(ESLINT) --config $(PROJECT_ROOT)/.eslintrc.json ${SRC_FILES}
 
 module-install: 
 	$(NPM) install
 
-integrate: clean lint test build
+integrate: clean lint test
+
+serve:
+	${NODE} example/stream/static_server.jsm ${PORT}
+
+serve-dev:
+	${NODEMON} -x "make build serve || true" -i example/stream/app.dist.js -w .
+
+coverage:
+	${NYC} report --reporter=text-lcov > coverage.lcov && codecov
 
 clean: 
-	rm -rf dist
+	rm -rf example/stream/app.dist.js
 	rm -rf tmp
 	rm -f .tmp-view.html
 
