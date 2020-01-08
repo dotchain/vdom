@@ -39,10 +39,10 @@ build: ${NODE} example/stream/app.dist.js
 
 # Run all JavaScript tests
 test: ${NODE}
-	${NYC} ${MOCHA} ${TEST_FILES}
+	${NYC} ${MOCHA} -r esm ${TEST_FILES}
 
 test-w: ${NODE}
-	${NYC} ${MOCHA} ${TEST_FILES} -w
+	${NYC} ${MOCHA} -r esm ${TEST_FILES} -w
 
 # Open a new chrome tab at chrome://inspect and click the small blue link
 # that says, "Open dedicated DevTools for Node."

@@ -1,31 +1,40 @@
 "use strict";
 
+const render = require("./render.js");
 const streams = require("streams/es6");
+const ui = require("./ui.js");
 const { Events } = require("../../events.js");
 const { update, reconciler } = require("../../index.es6.js");
-const ui = require("./ui.js");
-const render = require("./render.js");
 
-class App {
-  constructor() {
-    const root = document.body;
-    root.innerHTML = "";
-    const handler = (e, action) => this.handleEvent(e, action);
-    const eventsManager = new Events(WeakMap, root, handler);
-    this.reconciler = reconciler(root, eventsManager);
+export class App {
+  constructor(window) {
+    this._window = window;
     this.data = null;
     this.state = null;
+    this.isRunning = false;
   }
 
   run() {
-    const state = streams.wrap({ location: { hash: window.location.hash } });
+    this.isRunning = true;
+    const body = this._window.document.body;
+    body.innerHTML = "";
+    const handler = (e, action) => this.handleEvent(e, action);
+    const eventsManager = new Events(WeakMap, body, handler);
+    this.reconciler = reconciler(body, eventsManager);
+
+    const state = streams.wrap({ location: { hash: this._window.location.hash } });
     const data = streams.wrap({ todos: {} });
     this.rerender(data, state.withRef(["state"]));
-    requestAnimationFrame(() => this.onAnimationFrame());
+    this.onAnimationFrame();
+    return this;
   }
 
   onAnimationFrame() {
-    requestAnimationFrame(() => this.onAnimationFrame());
+    if (!this.isRunning) {
+      return;
+    }
+
+    this._window.requestAnimationFrame(() => this.onAnimationFrame());
     const data = this.data.latest();
     const state = this.state.latest();
     if (data !== this.data || state !== this.state) {
@@ -33,12 +42,16 @@ class App {
     }
   }
 
+  pause() {
+    this.isRunning = false;
+  }
+
   rerender(data, state) {
     this.data = data;
     this.state = state;
     this.reconciler.reconcile(render.app(data, state));
-    if (window.location.hash !== this.state.location.hash.valueOf()) {
-      window.location.hash = this.state.location.hash.valueOf();
+    if (this._window.location.hash !== this.state.location.hash.valueOf()) {
+      this._window.location.hash = this.state.location.hash.valueOf();
     }
   }
 
@@ -73,4 +86,6 @@ class App {
   }
 }
 
-new App().run();
+if (!module.parent) {
+  const app = new App(global.window).run();
+}
