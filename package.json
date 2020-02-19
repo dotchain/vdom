@@ -30,7 +30,7 @@
     "sourceMap": false
   },
   "devDependencies": {
-    "codecov": "^3.6.1",
+    "codecov": "^3.6.5",
     "esm": "^3.2.25",
     "git": "^0.1.5",
     "jsdom": "^15.2.1",
