@@ -62,7 +62,7 @@ class Reconciler {
       return this.updateChildren(root, before, after);
     } finally {
       const elt = this.autoFocus || this.active;
-      if (elt && this.doc.activeElement === this.doc.body) elt.focus();
+      if (elt && elt.focus && this.doc.activeElement === this.doc.body) elt.focus();
     }
   }
 
