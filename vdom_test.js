@@ -9,6 +9,10 @@ function text(s) {
   return { text: s };
 }
 
+function html(s) {
+  return { htmlUnsafe: s };
+}
+
 function div(key, props, contents) {
   return elt("div", key, props, contents);
 }
@@ -27,6 +31,14 @@ describe("vdom", () => {
     const r = reconciler(root, new Events(WeakMap, root));
     r.reconcile(text("Hello World"));
     expect(root.innerHTML).to.equal("Hello World");
+  });
+
+  it("creates unsafe html node", () => {
+    const dom = new JSDOM(`<!DOCTYPE html><p></p>`);
+    const root = dom.window.document.querySelector("p");
+    const r = reconciler(root, new Events(WeakMap, root));
+    r.reconcile(html("<p>boo</p>"));
+    expect(root.innerHTML).to.equal("<p>boo</p>");
   });
 
   it("creates an element #1", () => {
@@ -62,6 +74,17 @@ describe("vdom", () => {
     r.reconcile(text("Heyo"));
     expect(JSON.stringify(r.vdom)).to.equal(`{"text":"Heyo"}`);
     expect(root.innerHTML).to.equal("Heyo");
+  });
+
+  it("updates unsafe html node", () => {
+    const dom = new JSDOM(`<!DOCTYPE html><p></p>`);
+    const root = dom.window.document.querySelector("p");
+    const r = reconciler(root, new Events(WeakMap, root));
+
+    r.reconcile(html("<p>boo</p>"));
+    r.reconcile(html("<div>hoo</div>"));
+    expect(JSON.stringify(r.vdom)).to.equal(`{"htmlUnsafe":"<div>hoo</div>"}`);
+    expect(root.innerHTML).to.equal("<div>hoo</div>");
   });
 
   it("updates an element #1", () => {

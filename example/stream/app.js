@@ -22,7 +22,9 @@ export class App {
     const eventsManager = new Events(WeakMap, body, handler);
     this.reconciler = reconciler(body, eventsManager);
 
-    const state = streams.wrap({ location: { hash: this._window.location.hash } });
+    const state = streams.wrap({
+      location: { hash: this._window.location.hash }
+    });
     const data = streams.wrap({ todos: {} });
     this.rerender(data, state.withRef(["state"]));
     this.onAnimationFrame();

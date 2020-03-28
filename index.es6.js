@@ -1,6 +1,7 @@
 "use strict";
 
 const isText = spec => spec.hasOwnProperty("text");
+const isHTML = spec => spec.hasOwnProperty("htmlUnsafe");
 const latest = x => {
   while (x.next) x = x.next;
   return x;
@@ -62,7 +63,8 @@ class Reconciler {
       return this.updateChildren(root, before, after);
     } finally {
       const elt = this.autoFocus || this.active;
-      if (elt && elt.focus && this.doc.activeElement === this.doc.body) elt.focus();
+      if (elt && elt.focus && this.doc.activeElement === this.doc.body)
+        elt.focus();
     }
   }
 
@@ -100,7 +102,7 @@ class Reconciler {
   updateNode(beforeMap, key, spec) {
     let b = beforeMap[key];
     if (!b || b.spec.tag !== spec.tag) {
-      if (!isText(spec)) {
+      if (!isText(spec) && !isHTML(spec)) {
         const node = this.doc.createElement(spec.tag);
         if (spec.props.hasOwnProperty("autofocus")) {
           this.autoFocus = node;
@@ -109,7 +111,10 @@ class Reconciler {
         return this._updateNonTextNode(node, before, spec);
       }
 
-      return { spec, node: this.doc.createTextNode(spec.text) };
+      if (isText(spec)) {
+        return { spec, node: this.doc.createTextNode(spec.text) };
+      }
+      return { spec, node: this._createHTMLNode(spec.htmlUnsafe) };
     }
 
     delete beforeMap[key];
@@ -119,8 +124,20 @@ class Reconciler {
       node.nodeValue = spec.text;
       return { node, spec };
     }
+    if (isHTML(spec)) {
+      if (spec.htmlUnsafe === before.htmlUnsafe) {
+        return { node, spec };
+      }
+      return { spec, node: this._createHTMLNode(spec.htmlUnsafe) };
+    }
 
     return this._updateNonTextNode(node, before, spec);
+  }
+
+  _createHTMLNode(html) {
+    const n = this.doc.createElement("div");
+    n.innerHTML = html;
+    return n.firstChild || n;
   }
 
   _updateNonTextNode(node, before, after) {
@@ -183,8 +200,7 @@ class Specs {
     const specKey = spec.key || "";
     const key = prefix + "." + specKey;
 
-    if (isText(spec)) return fn(key, spec);
-    if (spec.tag) return fn(key, spec);
+    if (isText(spec) || isHTML(spec) || spec.tag) return fn(key, spec);
     if (!spec.nodes) return;
 
     for (let kk = 0; kk < spec.nodes.length; kk++) {
@@ -207,8 +223,7 @@ class Specs {
     const specKey = spec.key || "";
     const key = prefix + "." + specKey;
 
-    if (isText(spec)) return fn(key, spec);
-    if (spec.tag) return fn(key, spec);
+    if (isText(spec) || isHTML(spec) || spec.tag) return fn(key, spec);
     if (!spec.nodes) return spec;
 
     let specs = null;

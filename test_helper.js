@@ -1,5 +1,5 @@
-const { JSDOM } = require('jsdom');
-const simulant = require('jsdom-simulant');
+const { JSDOM } = require("jsdom");
+const simulant = require("jsdom-simulant");
 
 class FakeStorage {
   constructor() {
@@ -19,8 +19,8 @@ class FakeStorage {
  *  * Create a JSDOM window object for test cases.
  *   */
 function createWindow(optBody, optOptions) {
-  const opts = Object.assign({features: {QuerySelector: true}}, optOptions);
-  const dom = new JSDOM(optBody || '<html><body></body></html>', opts);
+  const opts = Object.assign({ features: { QuerySelector: true } }, optOptions);
+  const dom = new JSDOM(optBody || "<html><body></body></html>", opts);
   const win = dom.window;
 
   // Create a simple stub for requestAnimationFrame
@@ -31,7 +31,9 @@ function createWindow(optBody, optOptions) {
   /* eslint-enable no-param-reassign */
 
   win.onerror = (messageOrEvent, source, lineno, colno, error) => {
-    console.error('test_helper.js createWindow() encountered an uncaught exception. This is likely caused by a thrown exception in an application event handler.');
+    console.error(
+      "test_helper.js createWindow() encountered an uncaught exception. This is likely caused by a thrown exception in an application event handler."
+    );
     console.error(error);
   };
 
@@ -42,29 +44,40 @@ function createWindow(optBody, optOptions) {
    * https://github.com/facebook/jest/issues/890#issuecomment-298594389
    * Original implementation did not handle search or hash values properly.
    */
-  win.setUrl = (urlOrPart) => {
-    const url = urlOrPart.indexOf('http') === 0 ? urlOrPart : ['http://example.com', urlOrPart.replace(/^\//, '')].join('/');
-    const parser = win.document.createElement('a');
+  win.setUrl = urlOrPart => {
+    const url =
+      urlOrPart.indexOf("http") === 0
+        ? urlOrPart
+        : ["http://example.com", urlOrPart.replace(/^\//, "")].join("/");
+    const parser = win.document.createElement("a");
     parser.href = url;
-    ['href', 'protocol', 'host', 'hostname', 'origin', 'port', 'pathname'].forEach(prop => {
+    [
+      "href",
+      "protocol",
+      "host",
+      "hostname",
+      "origin",
+      "port",
+      "pathname"
+    ].forEach(prop => {
       Object.defineProperty(win.location, prop, {
         value: parser[prop],
-        writable: true,
+        writable: true
       });
     });
 
-    const parts = url.split('?');
-    const search = parts.length > 1 ? `?${parts[1]}` : '';
+    const parts = url.split("?");
+    const search = parts.length > 1 ? `?${parts[1]}` : "";
 
-    Object.defineProperty(win.location, 'search', {
+    Object.defineProperty(win.location, "search", {
       value: search,
-      writable: true,
+      writable: true
     });
 
-    const hash = url.split('#');
-    Object.defineProperty(win.location, 'hash', {
-      value: hash.length > 1 ? `#${hash[1]}` : '',
-      writable: true,
+    const hash = url.split("#");
+    Object.defineProperty(win.location, "hash", {
+      value: hash.length > 1 ? `#${hash[1]}` : "",
+      writable: true
     });
   };
 

@@ -37,7 +37,7 @@ describe("app", () => {
   });
 
   it("does not clear content in constructor", () => {
-    const para = doc.querySelector("p")
+    const para = doc.querySelector("p");
     expect(para.outerHTML).to.equal("<p>abcd</p>");
   });
 
