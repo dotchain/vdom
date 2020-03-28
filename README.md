@@ -162,6 +162,18 @@ nesting behaviors:
 This allows a component to return a fragment when it is rendered
 without resorting to container divs.
 
+
+#### Static HTML content
+
+It is possible to inject static HTML content at any node by using
+`{htmlUnsafe: "<svg ...></svg>"}` 
+
+This is useful for injecting SVG icons for example. The injected HTML
+is expected to be a single node though and not a fragment.
+
+These nodes are replaced if there is any change in the html -- there
+is no attempt to be smart and reuse nodes in this case.
+
 ## API
 
 A new instance of a reconciler can be created like so:
