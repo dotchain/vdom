@@ -58,13 +58,14 @@ class Reconciler {
   reconcile(root, before, after) {
     this.autoFocus = null;
     const active = this.doc.activeElement;
-    if (active !== this.doc.body) this.active = active;
+    this.active = active !== this.doc.body ? active : null;
     try {
       return this.updateChildren(root, before, after);
     } finally {
       const elt = this.autoFocus || this.active;
-      if (elt && elt.focus && this.doc.activeElement === this.doc.body)
+      if (elt && elt.focus && this.doc.activeElement === this.doc.body) {
         elt.focus();
+      }
     }
   }
 
